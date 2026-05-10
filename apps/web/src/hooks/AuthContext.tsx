@@ -18,6 +18,19 @@ import { onAuthStateChanged, signInWithCustomToken, type User } from "firebase/a
 import { getDb, getFirebaseAuth, mintUrl } from "../lib/firebase";
 import i18n, { normalizeLang, type AppLang } from "../i18n";
 
+/** Telegram sometimes fills initData shortly after WebApp.ready() (e.g. Desktop). */
+async function waitForInitData(maxMs = 2500): Promise<string> {
+  const read = () =>
+    typeof WebApp.initData === "string" ? WebApp.initData.trim() : "";
+  const deadline = Date.now() + maxMs;
+  let v = read();
+  while (!v && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 100));
+    v = read();
+  }
+  return v;
+}
+
 export type TelegramProfile = {
   id: string;
   firstName?: string;
@@ -104,11 +117,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (async () => {
       setError(null);
       try {
-        const initData =
-          typeof WebApp.initData === "string" ? WebApp.initData : "";
+        if (typeof WebApp.ready === "function") {
+          WebApp.ready();
+        }
+        if (typeof WebApp.expand === "function") {
+          WebApp.expand();
+        }
+        const initData = await waitForInitData();
         if (!initData) {
           if (import.meta.env.DEV) {
             console.warn("No Telegram initData — open inside Telegram Mini App");
+          }
+          if (!cancelled) {
+            setError(
+              "Telegram did not send login data (initData). Try: update Telegram Desktop, open the Mini App from the bot on your phone, and in BotFather use the Hosting URL without a trailing slash."
+            );
           }
           setReady(true);
           return;
@@ -129,7 +152,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({ initData }),
         });
         if (!res.ok) {
-          throw new Error(`Mint failed: ${res.status}`);
+          const hint =
+            res.status === 401
+              ? " Check TELEGRAM_BOT_TOKEN on Render matches this bot (BotFather token for the same bot that opens the Mini App)."
+              : "";
+          throw new Error(`Mint failed: ${res.status}.${hint}`);
         }
         const data = (await res.json()) as {
           token: string;
