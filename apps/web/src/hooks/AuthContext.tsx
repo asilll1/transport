@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -61,6 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [telegram, setTelegram] = useState<TelegramProfile | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Ignores stale async completions (e.g. React StrictMode remount). */
+  const authRunIdRef = useRef(0);
 
   const refreshLanguage = useCallback(async () => {
     const u = getFirebaseAuth().currentUser;
@@ -113,7 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    const runId = ++authRunIdRef.current;
+    const isCurrent = () => runId === authRunIdRef.current;
     (async () => {
       setError(null);
       try {
@@ -128,12 +132,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (import.meta.env.DEV) {
             console.warn("No Telegram initData — open inside Telegram Mini App");
           }
-          if (!cancelled) {
+          if (isCurrent()) {
             setError(
               "Telegram did not send login data (initData). Try: update Telegram Desktop, open the Mini App from the bot on your phone, and in BotFather use the Hosting URL without a trailing slash."
             );
           }
-          setReady(true);
+          if (isCurrent()) setReady(true);
           return;
         }
         let mint: string;
@@ -162,7 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           token: string;
           user: TelegramProfile;
         };
-        if (cancelled) return;
+        if (!isCurrent()) return;
         setTelegram(data.user);
         const fa = getFirebaseAuth();
         await signInWithCustomToken(fa, data.token);
@@ -189,15 +193,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
         await i18n.changeLanguage(storedLang);
       } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "auth error");
+        if (isCurrent()) {
+          const msg = e instanceof Error ? e.message : "auth error";
+          const hint =
+            msg.includes("invalid-custom-token") || msg.includes("custom-token")
+              ? " Your apps/web/.env must use the same Firebase web app as the service account on Render (same projectId)."
+              : "";
+          setError(msg + hint);
         }
       } finally {
-        if (!cancelled) setReady(true);
+        if (isCurrent()) setReady(true);
       }
     })();
     return () => {
-      cancelled = true;
+      authRunIdRef.current += 1;
     };
   }, []);
 
