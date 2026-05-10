@@ -1,0 +1,69 @@
+{
+  "app": { "name": "JolDosh" },
+  "tabs": { "drivers": "Drivers", "passengers": "Passengers" },
+  "nav": { "myPosts": "My posts", "language": "Language" },
+  "actions": {
+    "postRide": "Post a ride",
+    "asDriver": "I am a driver",
+    "asPassenger": "I am a passenger",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "call": "Call",
+    "chatTelegram": "Chat on Telegram",
+    "back": "Back",
+    "confirmDelete": "Delete this post?",
+    "cancel": "Cancel",
+    "decreaseSeat": "Remove one seat",
+    "increaseSeat": "Add one seat"
+  },
+  "filters": {
+    "from": "From",
+    "to": "To",
+    "any": "Any",
+    "noMatch": "No matching city"
+  },
+  "form": {
+    "departureCity": "Departure city",
+    "departureDetail": "Departure detail",
+    "destinationCity": "Destination city",
+    "destinationDetail": "Destination detail",
+    "date": "Date",
+    "time": "Time",
+    "price": "Price",
+    "carModel": "Car model",
+    "seats": "Available seats",
+    "passengers": "Passengers",
+    "phone": "Phone",
+    "notes": "Notes",
+    "priceExpectation": "Price expectation (optional)",
+    "privacy": "Your phone number will be visible to signed-in users who open this ride.",
+    "sameCity": "Origin and destination must differ.",
+    "pastTime": "Departure must be in the future.",
+    "required": "Required"
+  },
+  "ride": {
+    "driver": "Driver",
+    "passenger": "Passenger",
+    "seats": "Seats",
+    "when": "When",
+    "expired": "Expired",
+    "active": "Active"
+  },
+  "empty": { "drivers": "No driver posts yet.", "passengers": "No passenger posts yet.", "myPosts": "You have no posts." },
+  "loading": "Loading…",
+  "error": { "generic": "Something went wrong.", "auth": "Could not sign in." },
+  "lang": { "en": "English", "ru": "Russian", "ky": "Kyrgyz" },
+  "cities": {
+    "bishkek": "Bishkek",
+    "osh": "Osh",
+    "jalalabad": "Jalal-Abad",
+    "karakol": "Karakol",
+    "tokmok": "Tokmok",
+    "kant": "Kant",
+    "naryn": "Naryn",
+    "talas": "Talas",
+    "batken": "Batken",
+    "balykchy": "Balykchy"
+  }
+}
