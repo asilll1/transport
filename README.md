@@ -15,6 +15,32 @@ Firebase **Cloud Functions** are **not** deployed from this repo (see legacy [`f
 
 ---
 
+## Fresh start (new Firebase project + Render + Telegram bot)
+
+Use this order once per environment. Replace placeholders (`YOUR_*`, `PROJECT_ID`) with your real values.
+
+| Step | What to do |
+|------|------------|
+| 1 | **Firebase:** Create a [new project](https://console.firebase.google.com/). Copy the **Project ID**. |
+| 2 | In [`.firebaserc`](.firebaserc), set `"default"` to that Project ID (replace `your-firebase-project-id`). |
+| 3 | **Firebase:** Enable **Firestore** (production), **Authentication** (Get started), **Hosting**. |
+| 4 | **Firebase:** Register a **Web app** (`</>`). Copy `apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, `appId` into [`apps/web/.env`](apps/web/.env.example) (create `apps/web/.env` from the example if needed). |
+| 5 | **Firebase:** Project settings → **Service accounts** → **Generate new private key**. Keep the JSON for Render (`FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_JSON_B64` — see [Troubleshooting](#troubleshooting)). |
+| 6 | **Telegram:** [@BotFather](https://t.me/BotFather) → `/newbot` → save the **bot token**. |
+| 7 | **GitHub:** Push this repo (Render deploys from Git). |
+| 8 | **Render:** [Dashboard](https://dashboard.render.com/) → **New** → **Blueprint** → connect the repo → apply [`render.yaml`](render.yaml). Fill secrets when prompted (`TELEGRAM_BOT_TOKEN`, `FIREBASE_SERVICE_ACCOUNT_JSON`, `CRON_SECRET`, etc.). For **`MINI_APP_URL`**, use `https://PROJECT_ID.web.app` (same ID as in `.firebaserc`, **no trailing slash**). You can fix this after step 11 if needed, then redeploy. |
+| 9 | **Render:** When the service is live, copy the API origin: `https://<name>.onrender.com`. Open `/health` → `{"ok":true}`. |
+| 10 | **`apps/web/.env`:** Set **`VITE_API_BASE_URL`** to that Render origin (no trailing slash). |
+| 11 | **Hosting:** From repo root: `cd apps/web && npm install && npm run build`, then `cd ../.. && firebase deploy --only firestore:rules,firestore:indexes,hosting` (requires [Firebase CLI](https://firebase.google.com/docs/cli) and `firebase login`). |
+| 12 | **Render:** Confirm **`MINI_APP_URL`** matches the live Hosting URL exactly (e.g. `https://PROJECT_ID.web.app`). Redeploy the API service if you changed it. |
+| 13 | **Telegram webhook:** `curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<RENDER_ORIGIN>/webhook/telegram"` |
+| 14 | **BotFather:** **Menu button** and **Main App** URL = same as **`MINI_APP_URL`**. |
+| 15 | **Optional:** Schedule `POST https://<RENDER_ORIGIN>/internal/cron` with header `Authorization: Bearer <CRON_SECRET>` (~every 5 minutes) — see [§4](#4-scheduled-cron-expiry--reminders). |
+
+**Checklist:** Same **Firebase project** for `.firebaserc`, `apps/web/.env`, and `FIREBASE_SERVICE_ACCOUNT_JSON` on Render. Same **bot token** on Render and in `setWebhook`. **`MINI_APP_URL`**, BotFather URLs, and Hosting must match.
+
+---
+
 ## 1. Firebase (Spark)
 
 1. Create a project in [Firebase Console](https://console.firebase.google.com/).
