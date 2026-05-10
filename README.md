@@ -132,6 +132,20 @@ cd ../.. && firebase deploy --only hosting
 
 ---
 
+## Troubleshooting
+
+### Render: `FIREBASE_SERVICE_ACCOUNT_JSON` / `JSON.parse` error
+
+The value must be **valid JSON** from Firebase’s **Generate new private key** file. If the log shows `type` followed by a tab or **unquoted** keys, you pasted the wrong format (e.g. table/spreadsheet). Open the `.json` in a text editor; lines should look like `"type": "service_account",`.
+
+**Easier on Render:** locally run `base64 -w0 your-service-account.json` (macOS/Linux; on Windows use WSL or an online base64 file encoder), then set **`FIREBASE_SERVICE_ACCOUNT_JSON_B64`** to that **single line** and **remove** the broken `FIREBASE_SERVICE_ACCOUNT_JSON` variable (or leave it unset). The API supports `FIREBASE_SERVICE_ACCOUNT_JSON_B64` since commit with this README note.
+
+### Firebase Hosting: “Site Not Found”
+
+Normal until you run `npm run build` in `apps/web` and `firebase deploy --only hosting` for that project.
+
+---
+
 ## Local development
 
 ```bash
