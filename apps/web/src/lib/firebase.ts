@@ -35,12 +35,12 @@ export function getFirebaseAuth(): Auth {
   return auth;
 }
 
-/** Base URL of JolDosh API on Railway, no trailing slash. */
+/** Base URL of JolDosh API (e.g. Render), no trailing slash. */
 export function apiBaseUrl(): string {
   const base = import.meta.env.VITE_API_BASE_URL?.trim();
   if (!base) {
     throw new Error(
-      "Set VITE_API_BASE_URL (e.g. https://your-app.up.railway.app)"
+      "Set VITE_API_BASE_URL (e.g. https://your-app.onrender.com)"
     );
   }
   return base.replace(/\/$/, "");

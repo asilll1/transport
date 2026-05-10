@@ -1,6 +1,6 @@
 import { getFirebaseAuth, apiBaseUrl } from "./firebase";
 
-/** Calls Railway API: LibreTranslate + optional “ride published” Telegram message. */
+/** Calls JolDosh API: LibreTranslate + optional “ride published” Telegram message. */
 export async function syncRideAfterWrite(rideId: string): Promise<void> {
   const auth = getFirebaseAuth();
   const user = auth.currentUser;

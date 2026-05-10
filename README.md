@@ -1,6 +1,6 @@
 # JolDosh
 
-Intercity ride-sharing **Telegram Mini App** for Kyrgyzstan. This repo uses **Firebase Spark** (Firestore + Hosting only) and **Railway** for the API, Telegram bot, scheduled expiry, and **LibreTranslate** for server-side text translation—no Firebase Blaze or Google Cloud Translation required for that path.
+Intercity ride-sharing **Telegram Mini App** for Kyrgyzstan. This repo uses **Firebase Spark** (Firestore + Hosting only) and **[Render](https://render.com/)** for the HTTP API, Telegram bot, scheduled expiry, and **LibreTranslate** for server-side text translation—no Firebase Blaze or Google Cloud Translation required for that path.
 
 ## Architecture
 
@@ -8,8 +8,8 @@ Intercity ride-sharing **Telegram Mini App** for Kyrgyzstan. This repo uses **Fi
 |-------|--------|
 | Mini App (React + Vite) | [Firebase Hosting](https://firebase.google.com/docs/hosting) (Spark) → [`apps/web`](apps/web) |
 | Database | [Firestore](https://firebase.google.com/docs/firestore) (Spark) — [`firestore.rules`](firestore.rules), [`firestore.indexes.json`](firestore.indexes.json) |
-| HTTP API + Telegram bot + cron | [Railway](https://railway.app/) → [`apps/api`](apps/api) |
-| Translation | [LibreTranslate](https://libretranslate.com/) (self-hosted on Railway or a public instance) |
+| HTTP API + Telegram bot | [Render Web Service](https://render.com/docs/web-services) → [`apps/api`](apps/api) |
+| Translation | [LibreTranslate](https://libretranslate.com/) (self-hosted on Render or a public instance) |
 
 Firebase **Cloud Functions** are **not** deployed from this repo (see legacy [`functions/`](functions/) if you need reference code only).
 
@@ -18,10 +18,10 @@ Firebase **Cloud Functions** are **not** deployed from this repo (see legacy [`f
 ## 1. Firebase (Spark)
 
 1. Create a project in [Firebase Console](https://console.firebase.google.com/).
-2. Enable **Firestore** (production mode) and **Authentication** (get started; custom tokens are minted on Railway).
+2. Enable **Firestore** (production mode) and **Authentication** (get started; custom tokens are minted on Render).
 3. Enable **Hosting** and connect the app (first deploy can be from CLI below).
 4. Register a **Web app** and copy the config into `apps/web/.env` (see [`apps/web/.env.example`](apps/web/.env.example)).
-5. **Service account for Railway:** Project settings → Service accounts → **Generate new private key**. You will paste the full JSON into Railway as `FIREBASE_SERVICE_ACCOUNT_JSON` (see [`apps/api/.env.example`](apps/api/.env.example)).
+5. **Service account for Render:** Project settings → Service accounts → **Generate new private key**. Paste the full JSON into Render as `FIREBASE_SERVICE_ACCOUNT_JSON` (see [`apps/api/.env.example`](apps/api/.env.example)).
 
 Deploy rules, indexes, and hosting (no functions):
 
@@ -34,28 +34,45 @@ Set [`.firebaserc`](.firebaserc) to your Firebase project ID.
 
 ---
 
-## 2. Railway: JolDosh API
+## 2. Render: JolDosh API (`apps/api`)
 
-1. Create a **new project** on Railway and deploy from this repo (or connect GitHub). Set the **root directory** to `apps/api` (or use a Dockerfile path).
-2. **Start command** (if not using Docker): `npm install && npm run build && npm start`
-3. **Environment variables** (see [`apps/api/.env.example`](apps/api/.env.example)):
+### Option A — Blueprint (recommended)
+
+1. Push this repo to GitHub/GitLab.
+2. In [Render Dashboard](https://dashboard.render.com/), **New** → **Blueprint**.
+3. Connect the repo; Render detects [`render.yaml`](render.yaml).
+4. Apply the blueprint. When prompted, set **secret** variables (`sync: false`): `TELEGRAM_BOT_TOKEN`, `MINI_APP_URL`, `FIREBASE_SERVICE_ACCOUNT_JSON`, `CRON_SECRET`, optional `LIBRETRANSLATE_API_KEY` and `CORS_ORIGINS`.
+5. After deploy, open **`https://<service-name>.onrender.com/health`** — expect `{"ok":true}`.
+
+### Option B — Manual Web Service
+
+1. **New** → **Web Service** → connect the repo.
+2. **Root directory:** `apps/api`
+3. **Runtime:** Node
+4. **Build command:** `npm install && npm run build`
+5. **Start command:** `npm start`
+6. **Health check path:** `/health`
+7. **Environment:** Node **20** (matches [`apps/api/package.json`](apps/api/package.json) `engines`; you can set env `NODE_VERSION=20` if needed).
+8. Add the same variables as in [`apps/api/.env.example`](apps/api/.env.example):
 
 | Variable | Purpose |
 |----------|---------|
 | `TELEGRAM_BOT_TOKEN` | From [@BotFather](https://t.me/BotFather) |
 | `MINI_APP_URL` | Your Firebase Hosting URL, e.g. `https://PROJECT_ID.web.app` |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Full JSON string of the Firebase service account |
-| `LIBRETRANSLATE_URL` | Base URL of LibreTranslate (no trailing slash), e.g. `https://libretranslate.com` or your second Railway service |
+| `LIBRETRANSLATE_URL` | Base URL of LibreTranslate (no trailing slash), e.g. `https://libretranslate.com` or another Render service |
 | `LIBRETRANSLATE_API_KEY` | Optional, if your instance requires it |
 | `CRON_SECRET` | Long random string; see cron below |
-| `PORT` | Railway sets this automatically |
+| `PORT` | Render sets this automatically — do not override |
 | `CORS_ORIGINS` | Optional; comma-separated list or omit for permissive CORS in dev |
 
-4. After deploy, note the public HTTPS origin of the API (e.g. `https://joldosh-api.up.railway.app`).
+Render injects **`PORT`**; the app uses `process.env.PORT` (default `8080` locally).
 
-### Docker
+**Free tier:** the service **spins down** after idle time; first request after sleep can take ~30–60s. For production Telegram webhooks, consider a **paid** instance type so the service stays warm.
 
-[`apps/api/Dockerfile`](apps/api/Dockerfile) builds with `npm run build` and runs `node lib/server.js`.
+### Docker (optional)
+
+[`apps/api/Dockerfile`](apps/api/Dockerfile) builds with `npm run build` and runs `node lib/server.js`. On Render, create a **Web Service** with **Docker**, set **Dockerfile path** to `apps/api/Dockerfile` and **Docker build context** to `apps/api`.
 
 ### Endpoints
 
@@ -69,22 +86,23 @@ Set [`.firebaserc`](.firebaserc) to your Firebase project ID.
 
 ---
 
-## 3. Railway: LibreTranslate (recommended)
+## 3. Render: LibreTranslate (optional)
 
-Add a **second** Railway service using the official **LibreTranslate** Docker image, or use a public API for testing. Point `LIBRETRANSLATE_URL` on the API service to that base URL.
+Add another **Web Service** (or **Private Service**) using the official **LibreTranslate** Docker image, or use a public API for testing. Set `LIBRETRANSLATE_URL` on the API service to that base URL (no trailing slash).
 
 ---
 
-## 4. Railway Cron (every ~5 minutes)
+## 4. Scheduled cron (expiry + reminders)
 
-In Railway, add a **Cron** job that runs:
+Call **`POST /internal/cron`** about every **5 minutes** with:
 
 ```http
-POST https://YOUR_API_ORIGIN/internal/cron
 Authorization: Bearer YOUR_CRON_SECRET
 ```
 
-Use the same `CRON_SECRET` as in the API env.
+**On Render:** add a **Cron Job** (paid plans) or use an external scheduler (e.g. [cron-job.org](https://cron-job.org)) to `POST` `https://YOUR_SERVICE.onrender.com/internal/cron` with that header. Use the same `CRON_SECRET` as in the API’s environment.
+
+Render **free** web services cannot run Blueprint `type: cron` workers on the free instance type; use an external HTTP cron or upgrade.
 
 ---
 
@@ -102,7 +120,7 @@ Use the same `CRON_SECRET` as in the API env.
 
 Copy [`apps/web/.env.example`](apps/web/.env.example) → `apps/web/.env`:
 
-- Set **`VITE_API_BASE_URL`** to your Railway API origin (no trailing slash).
+- Set **`VITE_API_BASE_URL`** to your Render API origin (e.g. `https://joldosh-api.onrender.com`, no trailing slash).
 - Mint URL defaults to `{VITE_API_BASE_URL}/auth/mint`. Override with **`VITE_MINT_TELEGRAM_TOKEN_URL`** only if needed.
 
 Build and deploy hosting:

@@ -1,0 +1,29 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# After first deploy, set secret env vars in the dashboard (or via sync: false prompts).
+services:
+  - type: web
+    name: joldosh-api
+    runtime: node
+    region: frankfurt
+    plan: free
+    rootDir: apps/api
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: MINI_APP_URL
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: LIBRETRANSLATE_URL
+        value: https://libretranslate.com
+      - key: LIBRETRANSLATE_API_KEY
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
